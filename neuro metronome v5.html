@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A modern, configurable pattern metronome with precise BPM input, behavior-controlled visuals (symbols/beat numbers), sound editor preview, clipboard sharing, and WAV export.">
+    <meta name="keywords" content="metronome, pattern, sequencer, emoji, text, beat count, beat number, visual, behavior, sound editor, preview, bpm input, 1 bpm, arrow, strum, audio, export, wav, accessible, rhythm, music, tool, clipboard, fallback, offline, base64, utf8, compact">
+    <title>Rhythm Tool Pro v3.8 (Behavior-Driven Visuals)</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5; /* Indigo */
+            --primary-color-dark: #4338ca;
+            --secondary-color: #6366f1; /* Lighter Indigo */
+            --accent-color-1: #10b981; /* Emerald Green (Cow) */
+            --accent-color-2: #f59e0b; /* Amber Yellow (Tiger) */
+            --accent-color-3: #ec4899; /* Pink (Pig) */
+            --accent-color-4: #3b82f6; /* Blue (Frog) */
+            --accent-color-5: #8b5cf6; /* Violet (Up Arrow) - Can be changed by picker */
+            --accent-color-6: #64748b; /* Slate Gray (Down Arrow) - Can be changed by picker */
+            --bg-color: #f1f5f9; /* Slate 100 */
+            --card-bg-color: #ffffff;
+            --modal-bg-color: #ffffff;
+            --border-color: #e2e8f0; /* Slate 200 */
+            --label-color: #475569; /* Slate 600 */
+            --text-color: #0f172a; /* Slate 900 */
+            --text-muted-color: #64748b; /* Slate 500 */
+            --error-color: #ef4444; /* Red 500 */
+            --success-color: #22c55e; /* Green 500 */
+            --info-color: #3b82f6; /* Blue 500 */
+            --warning-color: #f59e0b; /* Amber 500 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+            --border-radius: 0.375rem; /* 6px */
+            --border-radius-lg: 0.5rem; /* 8px */
+            --transition-speed: 0.2s;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            margin: 0; background-color: var(--bg-color); color: var(--text-color);
+            line-height: 1.6; display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 30px 15px;
+        }
+        #appContainer { background-color: var(--card-bg-color); padding: 30px 40px; border-radius: var(--border-radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 25px; position: relative; }
+        h1 { color: var(--primary-color); text-align: center; margin: 0 0 10px 0; font-size: 2.2em; font-weight: 700; letter-spacing: -0.025em; }
+        h2 { margin: 0; font-size: 1.6em; color: var(--primary-color); font-weight: 600; }
+        h3 { font-size: 1.1em; font-weight: 600; color: var(--primary-color); text-align: left; width: 100%; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid var(--border-color); }
+        fieldset { border: none; padding: 0; margin: 0; }
+        legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+        .control-section { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 10px 15px; }
+        .control-section#bpmControl { grid-template-columns: 60px 1fr 80px; gap: 10px 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+        .control-section label { font-weight: 500; color: var(--label-color); text-align: right; font-size: 1em; }
+        .control-section input[type="color"] { width: 50px; height: 30px; padding: 2px; border: 1px solid var(--border-color); border-radius: var(--border-radius); cursor: pointer; background-color: white; grid-column: 2 / 3; justify-self: start; }
+        .control-section select { width: auto; min-width: 80px; padding: 8px 10px; font-size: 0.95em; border-radius: var(--border-radius); border: 1px solid var(--border-color); grid-column: 2 / 3; justify-self: start; background-color: white;}
+        #bpmControl input[type="range"] { width: 100%; accent-color: var(--primary-color); cursor: grab; height: 8px; border-radius: 4px; background-color: #e5e7eb; appearance: none; vertical-align: middle; grid-column: 2 / 3; }
+        #bpmControl input[type="range"]::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; background: var(--primary-color); border-radius: 50%; cursor: grab; box-shadow: var(--shadow-sm); border: 2px solid white; }
+        #bpmControl input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: var(--primary-color); border-radius: 50%; cursor: grab; border: none; box-shadow: var(--shadow-sm); }
+        #bpmControl input[type="range"]:active { cursor: grabbing; }
+        #bpmControl .control-value-input { font-weight: 700; font-size: 1.1em; color: var(--primary-color); width: 100%; text-align: right; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius); grid-column: 3 / 4; -moz-appearance: textfield; }
+        #bpmControl .control-value-input::-webkit-outer-spin-button,
+        #bpmControl .control-value-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        #visualArea { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        #visualControlContainer { width: 220px; height: 220px; border: 6px solid var(--border-color); border-radius: 50%; transition: border-color var(--transition-speed) ease-out, background-color var(--transition-speed) ease-out, box-shadow var(--transition-speed) ease-out, transform var(--transition-speed) ease-out; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; user-select: none; background-color: #f9fafb; box-shadow: var(--shadow-md); position: relative; overflow: hidden; }
+        #visualControlContainer:hover { border-color: var(--secondary-color); box-shadow: var(--shadow-lg); transform: scale(1.02); }
+        #visualControlContainer:active { transform: scale(0.98); box-shadow: var(--shadow-sm); }
+        #visualControlContainer.running { border-color: var(--error-color); animation: runningPulse 1.5s infinite ease-in-out; }
+        #visualControlContainer.running:hover { border-color: #dc2626; }
+        @keyframes runningPulse { 0% { box-shadow: var(--shadow-md), 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: var(--shadow-md), 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: var(--shadow-md), 0 0 0 0 rgba(239, 68, 68, 0); } }
+        #emojiDisplay { font-size: 60px; line-height: 1.1; display: inline-block; text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.15); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; transition: transform var(--transition-speed) ease, color var(--transition-speed) ease; opacity: 1; font-weight: 700; white-space: normal; word-break: break-word; text-align: center; padding: 5px; min-height: 1em; /* Ensure space even when blank */ }
+        #visualControlContainer:active #emojiDisplay { transform: scale(0.95); }
+        #visualControlContainer.vis-cow { background-color: #a7f3d0; } #visualControlContainer.vis-cow:not(.running) { border-color: var(--accent-color-1); }
+        #visualControlContainer.vis-tiger { background-color: #fde68a; } #visualControlContainer.vis-tiger:not(.running) { border-color: var(--accent-color-2); }
+        #visualControlContainer.vis-pig { background-color: #fbcfe8; } #visualControlContainer.vis-pig:not(.running) { border-color: var(--accent-color-3); }
+        #visualControlContainer.vis-frog { background-color: #bfdbfe; } #visualControlContainer.vis-frog:not(.running) { border-color: var(--accent-color-4); }
+        #visualControlContainer.vis-up { background-color: var(--accent-color-5); } #visualControlContainer.vis-up:not(.running) { border-color: var(--accent-color-5); }
+        #visualControlContainer.vis-down { background-color: var(--accent-color-6); } #visualControlContainer.vis-down:not(.running) { border-color: var(--accent-color-6); }
+        #visualControlContainer.vis-none { background-color: #f3f4f6; } #visualControlContainer.vis-none:not(.running) { border-color: var(--border-color); }
+        #visualControlContainer.vis-up #emojiDisplay,
+        #visualControlContainer.vis-down #emojiDisplay { color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); }
+        #infoDisplay { font-size: 1.5em; color: var(--text-muted-color); font-weight: 500; text-align: center; width: 100%; margin-top: 10px; min-height: 1.6em; }
+        #visualArea.running #infoDisplay { color: var(--primary-color); font-weight: 600; }
+        #settingsButton { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-muted-color); padding: 5px; line-height: 1; transition: color var(--transition-speed) ease, transform var(--transition-speed) ease; }
+        #settingsButton:hover { color: var(--primary-color); transform: rotate(45deg); }
+        #settingsButton:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .button-group { display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap; }
+        #settingsModal .button-group { margin-top: 10px; }
+        button { padding: 10px 20px; font-size: 0.95em; font-weight: 600; border-radius: var(--border-radius); cursor: pointer; border: none; transition: all var(--transition-speed) ease; background-color: var(--secondary-color); color: white; box-shadow: var(--shadow-md); letter-spacing: 0.025em; }
+        button:hover:not(:disabled) { filter: brightness(1.1); box-shadow: var(--shadow-lg); }
+        button:active:not(:disabled) { transform: translateY(1px) scale(0.98); filter: brightness(0.95); box-shadow: var(--shadow-sm); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; background-color: #9ca3af; }
+        button.primary { background-color: var(--primary-color); } button.primary:hover:not(:disabled) { background-color: var(--primary-color-dark); }
+        button.danger { background-color: var(--error-color); } button.danger:hover:not(:disabled) { background-color: #dc2626; }
+        button.success { background-color: var(--success-color); } button.success:hover:not(:disabled) { background-color: #16a34a; }
+        button.warning { background-color: var(--warning-color); color: #78350f; } button.warning:hover:not(:disabled) { background-color: #facc15; }
+        button.info { background-color: var(--info-color); } button.info:hover:not(:disabled) { background-color: #2563eb; }
+        button.small-play-btn { padding: 2px 6px; font-size: 0.9em; line-height: 1; min-width: auto; background-color: var(--info-color); margin-left: 10px; vertical-align: middle; }
+        button.small-play-btn:hover:not(:disabled) { background-color: #2563eb; }
+        dialog { border: none; border-radius: var(--border-radius-lg); box-shadow: var(--shadow-lg); padding: 0; max-width: 95vw; max-height: 90vh; overflow: hidden; width: 700px; }
+        dialog[open] { animation: zoomIn 0.3s ease-out; }
+        dialog::backdrop { background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(5px); animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-header { padding: 20px 30px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-close-btn { background: none; border: none; font-size: 2em; line-height: 1; cursor: pointer; color: var(--text-muted-color); padding: 0 5px; }
+        .modal-close-btn:hover { color: var(--error-color); }
+        .modal-body { padding: 30px; overflow-y: auto; max-height: calc(90vh - 150px); display: flex; flex-direction: column; gap: 25px;}
+        .modal-footer { padding: 20px 30px; border-top: 1px solid var(--border-color); text-align: right; background-color: #f9fafb; }
+        #settingsModal .settings-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px dashed var(--border-color); }
+        #settingsModal .settings-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        #soundEditorGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; }
+        .sound-param-group { border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); padding: 20px; background-color: #fff; box-shadow: var(--shadow-sm); }
+        .sound-param-group h3 { display: flex; align-items: center; justify-content: center; margin: 0 0 20px 0; font-size: 1.2em; color: var(--primary-color); text-align: center; font-weight: 600; text-transform: capitalize; }
+        .sound-param-group > div { display: grid; grid-template-columns: 75px 1fr; gap: 5px 10px; align-items: center; margin-bottom: 12px; }
+        .sound-param-group label { text-align: right; font-size: 0.9em; font-weight: 500; color: var(--label-color); }
+        .sound-param-group input, .sound-param-group select { width: 100%; padding: 8px 10px; font-size: 0.95em; border-radius: var(--border-radius); border: 1px solid var(--border-color); background-color: white; }
+        #patternEditorHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 12px 15px; background-color: #f9fafb; border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); flex-wrap: wrap; gap: 15px; }
+        .mode-toggle { display: flex; align-items: center; gap: 10px; } .mode-toggle label { font-size: 1em; font-weight: 500; margin: 0; color: var(--label-color); }
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; flex-shrink: 0; } .switch input { opacity: 0; width: 0; height: 0; } .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; } .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); } input:checked + .slider { background-color: var(--primary-color); } input:checked + .slider:before { transform: translateX(26px); }
+        #patternEditorHeader > span { font-size: 0.9em; color: var(--text-muted-color); text-align: right; flex-grow: 1;}
+        #patternEditorContainer { overflow-x: auto; background-color: #f3f4f6; padding: 15px; border-radius: var(--border-radius-lg); border: 1px solid var(--border-color); }
+        .pattern-grid { display: grid; grid-template-columns: 55px repeat(4, minmax(85px, 1fr)); gap: 8px; margin-top: 0; min-width: 450px; }
+        .pattern-header { font-weight: 600; text-align: center; font-size: 0.9em; padding: 8px 5px; background-color: var(--secondary-color); color: white; border-radius: var(--border-radius); position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow-sm); }
+        .beat-label { font-weight: 700; text-align: center; padding: 8px 5px; background-color: #e5e7eb; border-radius: var(--border-radius); display: flex; align-items: center; justify-content: center; font-size: 1.1em; border: 1px solid var(--border-color); }
+        .pattern-step { border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 10px 6px; background-color: var(--card-bg-color); cursor: pointer; transition: all var(--transition-speed) ease-out; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70px; text-align: center; position: relative; box-shadow: var(--shadow-sm); user-select: none; overflow: hidden; }
+        .pattern-step:hover { border-color: var(--secondary-color); transform: translateY(-2px); box-shadow: var(--shadow-md); } .pattern-step:active { transform: translateY(0px) scale(0.98); box-shadow: var(--shadow-sm); }
+        .pattern-step.active-step::after { content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px; border: 3px solid var(--primary-color); border-radius: calc(var(--border-radius) + 4px); pointer-events: none; animation: pulse 1.5s infinite ease-in-out; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); } 70% { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); } }
+        .step-animal, .step-behavior { font-size: 1em; line-height: 1.3; }
+        .step-animal { font-weight: 600; margin-bottom: 4px; text-transform: capitalize; font-size: 1.0em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+         .step-behavior { color: var(--text-muted-color); font-size: 0.85em; }
+        .step-behavior.off, .step-animal.none { color: #9ca3af; font-size: 0.9em; }
+        #settingsModal #shareSection textarea { width: 100%; min-height: 60px; font-size: 0.85em; font-family: monospace; word-break: break-all;}
+        #settingsModal #exportSection .export-controls { display: flex; align-items: center; justify-content: flex-start; gap: 15px; flex-wrap: wrap; }
+        #settingsModal #exportSection .export-controls input[type="number"] { width: 80px; text-align: right; margin-right: 5px; padding: 8px 10px; font-size: 0.95em; border-radius: var(--border-radius); border: 1px solid var(--border-color); background-color: white;}
+        #settingsModal #exportStatus, #settingsModal #clipboardStatus { margin-top: 10px; font-weight: 500; min-height: 1.2em; font-size: 0.9em; text-align: left; }
+        #settingsModal #clipboardStatus.warning { color: var(--warning-color); }
+        #settingsModal #exportStatus.success, #settingsModal #clipboardStatus.success { color: var(--success-color); }
+        #settingsModal #exportStatus.error, #settingsModal #clipboardStatus.error { color: var(--error-color); }
+        #settingsModal #exportStatus.processing { color: var(--primary-color); font-style: italic; }
+        @media (max-width: 768px) { dialog { width: 90vw; } .modal-body { padding: 20px; } .modal-header, .modal-footer { padding: 15px 20px; } }
+        @media (max-width: 640px) {
+            body { padding: 15px 10px; }
+            #appContainer { padding: 20px 15px; gap: 20px; }
+            h1 { font-size: 1.8em; }
+            .control-section#bpmControl { grid-template-columns: 50px 1fr 70px; gap: 8px 10px; }
+            #bpmControl .control-value-input { font-size: 1.0em; padding: 6px 8px;}
+            #visualArea { margin-top: 20px; margin-bottom: 20px; }
+            #visualControlContainer { width: 75vw; height: 75vw; border-width: 5px; }
+            #emojiDisplay { font-size: 25vw; }
+            #infoDisplay { font-size: 1.3em; margin-top: 15px; }
+            #settingsButton { font-size: 1.6em; top: 10px; right: 10px; }
+            .button-group button { font-size: 0.9em; padding: 10px 15px; }
+            dialog { width: 95vw; }
+            .pattern-grid { min-width: 360px; grid-template-columns: 45px repeat(4, minmax(70px, 1fr)); }
+            .pattern-step { min-height: 60px; padding: 6px 4px; }
+            .step-animal { font-size: 0.9em; }
+            .step-behavior { font-size: 0.8em; }
+            #settingsModal .control-section { grid-template-columns: 100px 1fr auto; }
+        }
+    </style>
+</head>
+<body>
+    <div id="appContainer">
+        <button id="settingsButton" aria-label="Open Settings" data-modal-id="settingsModal">⚙️</button>
+        <h1>Rhythm Tool</h1>
+        <div class="control-section" id="bpmControl">
+            <label for="bpmSlider">BPM</label>
+            <input type="range" id="bpmSlider" name="bpmSlider" min="1" max="300" value="120" aria-label="Beats Per Minute Slider">
+            <input type="number" id="bpmInput" name="bpmInput" class="control-value-input" min="1" max="300" step="1" value="120" aria-label="Beats Per Minute Input">
+        </div>
+        <div id="visualArea">
+             <div id="visualControlContainer" role="button" aria-label="Start Metronome" tabindex="0">
+                <span id="emojiDisplay" aria-live="polite" aria-label="Current Beat Visual"></span>
+             </div>
+             <div id="infoDisplay" aria-live="polite">Beat: - | Sub: -</div>
+        </div>
+    </div>
+
+    <dialog id="settingsModal" aria-labelledby="settingsModalTitle" aria-modal="true">
+        <div class="modal-header">
+            <h2 id="settingsModalTitle">Settings & Tools</h2>
+            <button class="modal-close-btn" data-modal-id="settingsModal" aria-label="Close Settings">&times;</button>
+        </div>
+        <div class="modal-body">
+            <fieldset class="settings-section">
+              <h3>General</h3>
+                 <div class="control-section">
+                    <label for="beatsPerMeasure">Beats/Measure</label>
+                    <select id="beatsPerMeasure" name="beatsPerMeasure" aria-label="Beats Per Measure">
+                        <option value="1">1</option> <option value="2">2</option>
+                        <option value="3">3</option> <option value="4" selected>4</option>
+                        <option value="5">5</option> <option value="6">6</option>
+                        <option value="7">7</option> <option value="8">8</option>
+                    </select>
+                    <span></span>
+                 </div>
+                 <div class="control-section">
+                    <label for="displayMode">Main Display</label>
+                    <select id="displayMode" name="displayMode" aria-label="Main Visual Display Mode">
+                        <option value="symbol" selected>Show Symbol</option>
+                        <option value="beat">Show Beat Count</option>
+                    </select>
+                    <span></span>
+                 </div>
+            </fieldset>
+             <fieldset class="settings-section">
+                <h3>Appearance</h3>
+                 <div class="control-section">
+                    <label for="upArrowColor">Up Arrow (↑) Color</label>
+                    <input type="color" id="upArrowColor" data-css-var="--accent-color-5" data-state-key="c5">
+                    <span></span>
+                 </div>
+                 <div class="control-section">
+                    <label for="downArrowColor">Down Arrow (↓) Color</label>
+                    <input type="color" id="downArrowColor" data-css-var="--accent-color-6" data-state-key="c6">
+                     <span></span>
+                 </div>
+            </fieldset>
+            <fieldset class="settings-section">
+                <h3>Editors</h3>
+                <div class="button-group">
+                    <button data-modal-id="soundEditorModal" id="editSoundsButton">Edit Sounds</button>
+                    <button data-modal-id="patternEditorModal" id="editPatternButton">Edit Pattern</button>
+                </div>
+            </fieldset>
+            <fieldset id="exportSection" class="settings-section">
+                <h3>Export Audio (WAV)</h3>
+                 <div class="export-controls">
+                    <label for="exportDuration">Duration:</label>
+                    <div>
+                         <input type="number" id="exportDuration" value="10" min="1" max="300" step="1">
+                         <span> sec (Max: 300)</span>
+                    </div>
+                    <button id="exportWavButton" class="info">Export</button>
+                </div>
+                <div id="exportStatus" role="status" aria-live="polite"></div>
+            </fieldset>
+            <fieldset id="shareSection" class="settings-section">
+                <h3>Share Settings (Compact)</h3>
+                <textarea id="settingsCode" placeholder="Copy compact code from here or paste code here to load..." rows="3" aria-label="Encoded Settings Code Input/Output"></textarea>
+                <div class="button-group">
+                     <button id="copyCodeButton" class="warning">Copy Code</button>
+                     <button id="loadCodeButton" class="success">Load from Clipboard</button>
+                     <button id="loadTextBoxButton" class="success">Load from Text Box</button>
+                </div>
+                <div id="clipboardStatus" role="status" aria-live="polite"></div>
+                 <p style="font-size: 0.8em; color: var(--text-muted-color); margin-top: 10px;">Note: Custom display symbols & display mode are not saved/loaded.</p>
+            </fieldset>
+        </div>
+        <div class="modal-footer">
+             <button class="modal-close-btn primary" data-modal-id="settingsModal">Close</button>
+        </div>
+    </dialog>
+    <dialog id="soundEditorModal" aria-labelledby="soundEditorTitle" aria-modal="true">
+         <div class="modal-header"><h2 id="soundEditorTitle">Sound Editor</h2><button class="modal-close-btn" data-modal-id="soundEditorModal" aria-label="Close sound editor">&times;</button></div>
+         <div class="modal-body"><div id="soundEditorGrid"></div></div>
+         <div class="modal-footer"><button class="modal-close-btn primary" data-modal-id="soundEditorModal">Done</button></div>
+    </dialog>
+    <dialog id="patternEditorModal" aria-labelledby="patternEditorTitle" aria-modal="true">
+        <div class="modal-header"><h2 id="patternEditorTitle">Rhythm Pattern Editor</h2><button class="modal-close-btn" data-modal-id="patternEditorModal" aria-label="Close pattern editor">&times;</button></div>
+         <div class="modal-body">
+             <div id="patternEditorHeader">
+                 <div class="mode-toggle">
+                    <label id="editModeToggleLabel" for="editModeToggle">Editing:</label>
+                    <span id="editModeLabel" aria-live="polite">Symbol</span>
+                    <label class="switch" aria-labelledby="editModeToggleLabel">
+                        <input type="checkbox" id="editModeToggle" aria-controls="patternGrid">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <span id="editModeHint">Click squares to cycle values</span>
+             </div>
+            <div id="patternEditorContainer" role="grid" aria-label="Rhythm Pattern Grid"><div id="patternGrid" class="pattern-grid"></div></div>
+        </div>
+        <div class="modal-footer"><button class="modal-close-btn primary" data-modal-id="patternEditorModal">Done</button></div>
+    </dialog>
+
+    <script>
+        const App = (() => {
+            let state = { bpm: 120, beatsPerMeasure: 4, soundParams: { cow: { name: "Cow 🐮", emoji: "🐮", freq: 110, dur: 0.20, fadeIn: 0.01, fadeOut: 0.18, type: 'sawtooth', vol: 0.6 }, tiger: { name: "Tiger 🐯", emoji: "🐯", freq: 400, dur: 0.15, fadeIn: 0.005, fadeOut: 0.12, type: 'square', vol: 0.4 }, pig: { name: "Pig 🐷", emoji: "🐷", freq: 880, dur: 0.08, fadeIn: 0.002, fadeOut: 0.07, type: 'triangle', vol: 0.35 }, frog: { name: "Frog 🐸", emoji: "🐸", freq: 1400, dur: 0.06, fadeIn: 0.001, fadeOut: 0.05, type: 'sine', vol: 0.3 }, up: { name: "Up ↑", emoji: "↑", freq: 750, dur: 0.05, fadeIn: 0.001, fadeOut: 0.04, type: 'sine', vol: 0.35 }, down: { name: "Down ↓", emoji: "↓", freq: 500, dur: 0.07, fadeIn: 0.001, fadeOut: 0.06, type: 'sine', vol: 0.4 } }, patternConfig: [], isRunning: false, current16thNote: 0, nextNoteTime: 0.0, patternEditMode: 'animal', activeStepElement: null, c5: '#8b5cf6', c6: '#64748b', displayMode: 'symbol' };
+            const MAX_BEATS = 8; const MAX_EXPORT_DURATION_SEC = 300; const MIN_BPM = 1; const MAX_BPM = 300;
+            let audioContext; let timerID = null; let dom = {};
+            const SYMBOL_CYCLE = ['none', 'cow', 'tiger', 'pig', 'frog', 'up', 'down']; const BEHAVIOR_CYCLE = ['off', 'both', 'hear', 'display']; const SUBDIVISION_LABELS = ['1', 'e', 'AND', 'a'];
+            const LOOKAHEAD_MS = 25.0; const SCHEDULE_AHEAD_TIME_SEC = 0.1;
+
+            function setupAudioContext() { if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); if (!audioContext) throw new Error("AudioContext creation failed."); } catch (e) { console.error("Web Audio API Error:", e); alert("Web Audio API not supported/failed."); return false; } } if (audioContext.state === 'suspended') { audioContext.resume().catch(e => console.warn("AudioContext resume needed user gesture:", e)); } return audioContext.state === 'running'; }
+            function playTone(time, params, targetCtx, destinationNode) { const ctx = targetCtx || audioContext; const dest = destinationNode || ctx?.destination; const isActive = (ctx instanceof AudioContext) ? ctx.state === 'running' : (ctx instanceof OfflineAudioContext ? true : false); if (!ctx || !isActive || !dest || !params || params.vol <= 0 || !params.freq) { return; } const { freq, dur, fadeIn, fadeOut, type, vol } = params; const safeFadeIn = Math.max(0.001, fadeIn || 0.001); const safeFadeOut = Math.max(0.001, fadeOut || 0.001); const totalDuration = Math.max(safeFadeIn + safeFadeOut, dur || 0.01); try { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain).connect(dest); osc.type = type || 'sine'; osc.frequency.setValueAtTime(freq, time); gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(vol, time + safeFadeIn); const startFadeOutTime = time + totalDuration - safeFadeOut; const effectiveStartFadeOutTime = Math.max(startFadeOutTime, time + safeFadeIn); if (effectiveStartFadeOutTime > (time + safeFadeIn)) { gain.gain.setValueAtTime(vol, effectiveStartFadeOutTime); } gain.gain.linearRampToValueAtTime(0.0001, effectiveStartFadeOutTime + safeFadeOut); osc.start(time); osc.stop(effectiveStartFadeOutTime + safeFadeOut + 0.01); } catch (e) { console.error("Error playing tone:", e, "Params:", params); } }
+            const SYMBOL_MAP = { none: 0, cow: 1, tiger: 2, pig: 3, frog: 4, up: 5, down: 6 }; const SYMBOL_MAP_REV = ["none", "cow", "tiger", "pig", "frog", "up", "down"];
+            const BEHAVIOR_MAP = { off: 0, both: 1, hear: 2, display: 3 }; const BEHAVIOR_MAP_REV = ["off", "both", "hear", "display"];
+            const WAVE_TYPE_MAP = { sine: 0, square: 1, triangle: 2, sawtooth: 3 }; const WAVE_TYPE_MAP_REV = ["sine", "square", "triangle", "sawtooth"];
+            function padNum(num, len) { return num.toString().padStart(len, '0'); }
+            function base64UrlEncode(u8Array) { const bs = String.fromCharCode(...u8Array); return btoa(bs).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+            function base64UrlDecode(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) { str += '='; } const bs = atob(str); const len = bs.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = bs.charCodeAt(i); } return bytes; }
+
+            function encodeSettingsCompact() { try { let p = ""; p += padNum(state.bpm, 3); p += state.beatsPerMeasure.toString(); p += state.c5.substring(1); p += state.c6.substring(1); for (const k of SYMBOL_MAP_REV.slice(1)) { const s = state.soundParams[k]; p += padNum(Math.min(9999,Math.max(0,Math.round(s.freq))), 4); p += padNum(Math.min(99,Math.max(0,Math.round(s.vol*100))), 2); p += padNum(Math.min(9999,Math.max(0,Math.round(s.dur*1000))), 4); p += WAVE_TYPE_MAP[s.type]??0; p += padNum(Math.min(999,Math.max(0,Math.round(s.fadeIn*1000))), 3); p += padNum(Math.min(999,Math.max(0,Math.round(s.fadeOut*1000))), 3); } const totalSteps = state.beatsPerMeasure * 4; for (let i = 0; i < totalSteps; i++) { const step = state.patternConfig[i] || { animal: 'none', behavior: 'off' }; p += SYMBOL_MAP[step.animal]??0; p += BEHAVIOR_MAP[step.behavior]??0; } const maxPatternSlots = MAX_BEATS * 4; for (let i = totalSteps; i < maxPatternSlots; i++) { p += '00'; } const bytes = new TextEncoder().encode(p); return base64UrlEncode(bytes); } catch (e) { console.error("Compact Encoding Error:", e); setStatusMessage(dom.clipboardStatusDiv, "Error creating code.", 'error'); return null; } }
+            function decodeSettingsCompact(encodedString) { try { const bytes = base64UrlDecode(encodedString); const packed = new TextDecoder().decode(bytes); let pos = 0; const read = (len) => { if (pos + len > packed.length) throw new Error("Unexpected end of string."); const sub = packed.substring(pos, pos + len); pos += len; return sub; }; const newSettings = { soundParams: {}, patternConfig: [] }; newSettings.b = parseInt(read(3), 10); newSettings.m = parseInt(read(1), 10); newSettings.c5 = '#' + read(6); newSettings.c6 = '#' + read(6); if (isNaN(newSettings.b) || newSettings.b < MIN_BPM || newSettings.b > MAX_BPM) throw new Error(`Invalid BPM (${newSettings.b}). Must be ${MIN_BPM}-${MAX_BPM}.`); if (isNaN(newSettings.m) || newSettings.m < 1 || newSettings.m > MAX_BEATS) throw new Error("Invalid Beats/Measure"); if (!/^#[0-9a-fA-F]{6}$/.test(newSettings.c5)) throw new Error("Invalid Color 5"); if (!/^#[0-9a-fA-F]{6}$/.test(newSettings.c6)) throw new Error("Invalid Color 6"); const defaultSPs = App.getDefaultState().soundParams; for (const key of SYMBOL_MAP_REV.slice(1)) { const freq = parseInt(read(4), 10); const vol = parseInt(read(2), 10) / 100; const dur = parseInt(read(4), 10) / 1000; const typeIndex = parseInt(read(1), 10); const fadeIn = parseInt(read(3), 10) / 1000; const fadeOut = parseInt(read(3), 10) / 1000; if (isNaN(freq) || isNaN(vol) || isNaN(dur) || isNaN(typeIndex) || isNaN(fadeIn) || isNaN(fadeOut)) { throw new Error(`Invalid sound param for ${key}`); } newSettings.soundParams[key] = { name: defaultSPs[key]?.name || key, emoji: defaultSPs[key]?.emoji || '', freq: freq, vol: vol, dur: dur, type: WAVE_TYPE_MAP_REV[typeIndex] || 'sine', fadeIn: fadeIn, fadeOut: fadeOut, }; } const totalSteps = newSettings.m * 4; for (let i = 0; i < totalSteps; i++) { const symbolIndex = parseInt(read(1), 10); const behaviorIndex = parseInt(read(1), 10); if(symbolIndex >= SYMBOL_MAP_REV.length || behaviorIndex >= BEHAVIOR_MAP_REV.length) { throw new Error(`Invalid pattern index at ${i}`); } newSettings.patternConfig.push({ animal: SYMBOL_MAP_REV[symbolIndex], behavior: BEHAVIOR_MAP_REV[behaviorIndex] }); } return newSettings; } catch (e) { console.error("Compact Decoding Error:", e); setStatusMessage(dom.clipboardStatusDiv, `Load Error: ${e.message}`, 'error'); return null; } }
+            function renderSoundEditor() { dom.soundEditorGrid.innerHTML = ''; Object.entries(state.soundParams).forEach(([key, params]) => { const group = document.createElement('div'); group.className = 'sound-param-group'; group.innerHTML = `<h3> ${params.name || key} <button class="small-play-btn" data-symbol-key="${key}" aria-label="Preview ${params.name || key} sound">▶️</button> </h3> <div> <label for="${key}_freq">Freq</label> <input type="number" id="${key}_freq" data-symbol-key="${key}" data-param="freq" value="${params.freq}" min="20" max="5000" step="1"> </div> <div> <label for="${key}_vol">Vol</label> <input type="range" id="${key}_vol" data-symbol-key="${key}" data-param="vol" value="${params.vol}" min="0" max="1" step="0.01"> </div> <div> <label for="${key}_dur">Dur</label> <input type="number" id="${key}_dur" data-symbol-key="${key}" data-param="dur" value="${params.dur}" min="0.01" max="2" step="0.005"> </div> <div> <label for="${key}_type">Type</label> <select id="${key}_type" data-symbol-key="${key}" data-param="type"> ${['sine','square','triangle','sawtooth'].map(t=>`<option value="${t}" ${params.type===t?'selected':''}>${t[0].toUpperCase()+t.slice(1)}</option>`).join('')} </select> </div> <div> <label for="${key}_fadeIn">FadeIn</label> <input type="number" id="${key}_fadeIn" data-symbol-key="${key}" data-param="fadeIn" value="${params.fadeIn}" min="0.001" max="1" step="0.001"> </div> <div> <label for="${key}_fadeOut">FadeOut</label> <input type="number" id="${key}_fadeOut" data-symbol-key="${key}" data-param="fadeOut" value="${params.fadeOut}" min="0.001" max="1" step="0.001"> </div> <div> <label for="${key}_emoji">Display</label> <input type="text" id="${key}_emoji" data-symbol-key="${key}" data-param="emoji" value="${params.emoji}" maxlength="5"> </div>`; dom.soundEditorGrid.appendChild(group); }); dom.soundEditorGrid.querySelectorAll('input, select').forEach(input => { const eventType = (input.type === 'range' || input.type === 'number' || input.type === 'text') ? 'input' : 'change'; input.removeEventListener(eventType, handleSoundParamChange); input.addEventListener(eventType, handleSoundParamChange); }); }
+            function renderPatternGrid() { dom.patternGrid.innerHTML = ''; const totalSteps = state.beatsPerMeasure * 4; if (!Array.isArray(state.patternConfig) || state.patternConfig.length !== totalSteps) { initPatternConfig(); } const headerHTML = `<div class="pattern-header">Beat</div>` + SUBDIVISION_LABELS.map(lbl => `<div class="pattern-header">${lbl}</div>`).join(''); dom.patternGrid.insertAdjacentHTML('beforeend', headerHTML); for (let beat = 0; beat < state.beatsPerMeasure; beat++) { const beatLabel = document.createElement('div'); beatLabel.className = 'beat-label'; beatLabel.setAttribute('role', 'rowheader'); beatLabel.textContent = beat + 1; dom.patternGrid.appendChild(beatLabel); for (let sub = 0; sub < 4; sub++) { const stepIndex = beat * 4 + sub; const stepDiv = document.createElement('div'); stepDiv.className = 'pattern-step'; stepDiv.id = `step-${stepIndex}`; stepDiv.dataset.index = stepIndex; stepDiv.setAttribute('role', 'gridcell'); stepDiv.setAttribute('tabindex', 0); renderPatternStep(stepDiv, state.patternConfig[stepIndex] || { animal: 'none', behavior: 'off'}); dom.patternGrid.appendChild(stepDiv); } } }
+            function renderPatternStep(stepElement, stepConfig) { const symbolKey = stepConfig.animal; const symbolData = state.soundParams[symbolKey]; const displaySymbol = (symbolKey !== 'none' && symbolData?.emoji) ? symbolData.emoji : ' '; stepElement.innerHTML = ` <span class="step-animal ${symbolKey}">${displaySymbol}</span> <span class="step-behavior ${stepConfig.behavior}">${stepConfig.behavior}</span> `; stepElement.setAttribute('aria-label', `Step ${stepElement.id.split('-')[1]}: ${displaySymbol} - ${stepConfig.behavior}. Click/Enter/Space to edit.`); }
+
+            function updateVisualDisplay(configuredSymbolKey, stepIndex) {
+                let displayContent = '';
+                let keyForStyling = 'none';
+                const stepConfig = state.patternConfig[stepIndex];
+                const behavior = stepConfig?.behavior || 'off';
+
+                if (behavior === 'display' || behavior === 'both') {
+                    keyForStyling = configuredSymbolKey !== 'none' ? configuredSymbolKey : 'none'; // Use configured key for style if display/both
+                    if (state.displayMode === 'beat') {
+                        if (stepIndex !== undefined && stepIndex >= 0) {
+                            const subdivisionIndex = stepIndex % 4;
+                            if (subdivisionIndex === 0) {
+                                const beatNum = Math.floor(stepIndex / 4) + 1;
+                                displayContent = beatNum.toString();
+                            } else {
+                                displayContent = SUBDIVISION_LABELS[subdivisionIndex] || '';
+                            }
+                        }
+                    } else { // displayMode is 'symbol'
+                        const symbolData = state.soundParams[configuredSymbolKey];
+                        displayContent = (configuredSymbolKey && configuredSymbolKey !== 'none' && symbolData?.emoji) ? symbolData.emoji : '';
+                    }
+                } else {
+                     // Behavior is 'hear' or 'off', display is blank, style is 'none'
+                     displayContent = '';
+                     keyForStyling = 'none';
+                }
+
+                dom.emojiDisplay.textContent = displayContent;
+                dom.visualControlContainer.className = 'vis-' + keyForStyling;
+                dom.visualControlContainer.classList.toggle('running', state.isRunning);
+            }
+
+            function updateInfoDisplay(beat, sub) { const subLabel = sub >= 0 ? (SUBDIVISION_LABELS[sub % 4] || '-') : '-'; const beatLabel = beat > 0 ? beat : '-'; dom.infoDisplay.textContent = `Beat: ${beatLabel} | Sub: ${subLabel}`; dom.visualArea.classList.toggle('running', state.isRunning); }
+            function updateStepHighlight(index) { if (state.activeStepElement) { state.activeStepElement.classList.remove('active-step'); } if (index >= 0 && index < (state.beatsPerMeasure * 4)) { const newStepElement = dom.patternGrid?.querySelector(`#step-${index}`); if (newStepElement) { newStepElement.classList.add('active-step'); state.activeStepElement = newStepElement; } else { state.activeStepElement = null; } } else { state.activeStepElement = null; } }
+            function updateControlsState() { const disable = state.isRunning; dom.bpmSlider.disabled = disable; dom.bpmInput.disabled = disable; dom.beatsPerMeasureSelect.disabled = disable; dom.displayModeSelect.disabled = disable; dom.soundEditorGrid?.querySelectorAll('input, select, button').forEach(el => el.disabled = disable); dom.patternGrid?.querySelectorAll('.pattern-step').forEach(el => { el.style.pointerEvents = disable ? 'none' : 'auto'; el.setAttribute('aria-disabled', String(disable)); if (disable) el.removeAttribute('tabindex'); else el.setAttribute('tabindex', 0); }); dom.editModeToggle.disabled = disable; dom.loadCodeButton.disabled = disable; dom.loadTextBoxButton.disabled = disable; dom.exportWavButton.disabled = disable; dom.copyCodeButton.disabled = disable; dom.editSoundsButton.disabled = disable; dom.editPatternButton.disabled = disable; dom.settingsButton.disabled = disable; dom.upArrowColorInput.disabled = disable; dom.downArrowColorInput.disabled = disable; dom.visualControlContainer.classList.toggle('running', disable); dom.visualControlContainer.setAttribute('aria-label', disable ? 'Stop Metronome' : 'Start Metronome'); }
+            function setStatusMessage(element, message, type = 'info', duration = 3500) { if (!element) return; element.textContent = message; element.className = type; if (duration > 0 && type !== 'warning' && type !== 'error') { setTimeout(() => { if (element.textContent === message && element.className === type) { element.textContent = ''; element.className = ''; } }, duration); } }
+            async function copyCodeToClipboard() { const encodedSettings = encodeSettingsCompact(); if (!encodedSettings) { setStatusMessage(dom.clipboardStatusDiv, "Error creating code.", 'error'); return; } dom.settingsCodeTextarea.value = encodedSettings; if (navigator.clipboard && window.isSecureContext) { try { await navigator.clipboard.writeText(encodedSettings); setStatusMessage(dom.clipboardStatusDiv, "Code copied!", 'success'); return; } catch (err) { console.error('Clipboard API copy failed:', err); setStatusMessage(dom.clipboardStatusDiv, "Clipboard API failed, trying fallback...", 'warning'); } } try { dom.settingsCodeTextarea.select(); const successful = document.execCommand('copy'); if (successful) { setStatusMessage(dom.clipboardStatusDiv, "Copied (fallback).", 'success'); } else { throw new Error('execCommand failed'); } } catch (err) { console.error('Fallback copy failed:', err); setStatusMessage(dom.clipboardStatusDiv, "Copy failed. Select text manually.", 'error'); } window.getSelection()?.removeAllRanges(); }
+            async function loadCodeFromClipboard() { if (!navigator.clipboard || !window.isSecureContext) { setStatusMessage(dom.clipboardStatusDiv, "Clipboard unavailable. Paste code and use 'Load from Text Box'.", 'warning', 0); return; } try { const text = await navigator.clipboard.readText(); if (text) { dom.settingsCodeTextarea.value = text; applyImportedSettings(text.trim()); } else { setStatusMessage(dom.clipboardStatusDiv, "Clipboard is empty.", 'warning'); } } catch (err) { console.error('Clipboard read failed:', err); if (err.name === 'NotAllowedError' || err.name === 'SecurityError') { setStatusMessage(dom.clipboardStatusDiv, "Permission denied. Paste & use 'Load from Text Box'.", 'error'); } else { setStatusMessage(dom.clipboardStatusDiv, "Clipboard error. Paste & use 'Load from Text Box'.", 'error'); } } }
+            function handleLoadFromTextBox() { const text = dom.settingsCodeTextarea.value.trim(); if (text) { applyImportedSettings(text); } else { setStatusMessage(dom.clipboardStatusDiv, "Text box is empty.", 'warning'); } }
+            function handleBpmChange(event) { const newBpm = parseInt(event.target.value, 10); if (!isNaN(newBpm) && newBpm >= MIN_BPM && newBpm <= MAX_BPM) { state.bpm = newBpm; if (dom.bpmInput) dom.bpmInput.value = state.bpm; } }
+            function handleBpmInputChange(event) { const inputElement = event.target; let newBpm = parseInt(inputElement.value, 10); if (isNaN(newBpm)) return; newBpm = Math.max(MIN_BPM, Math.min(MAX_BPM, newBpm)); state.bpm = newBpm; if (dom.bpmSlider) dom.bpmSlider.value = state.bpm; if (parseInt(inputElement.value, 10) !== newBpm) { inputElement.value = newBpm; } }
+            function handleTimeSigChange(event) { if (state.isRunning) { alert("Stop the metronome to change beats per measure."); event.target.value = state.beatsPerMeasure; return; } state.beatsPerMeasure = parseInt(event.target.value, 10); initPatternConfig(); renderPatternGrid(); state.current16thNote = 0; updateInfoDisplay(0, -1); updateStepHighlight(-1); updateVisualDisplay('none', -1); }
+            function handleDisplayModeChange(event) { state.displayMode = event.target.value; if (state.isRunning && state.activeStepElement) { const stepIndex = parseInt(state.activeStepElement.dataset.index, 10); if (!isNaN(stepIndex)) { const stepConfig = state.patternConfig[stepIndex]; updateVisualDisplay(stepConfig.animal, stepIndex); } } else if (!state.isRunning) { updateVisualDisplay('none', -1); } }
+            function handleStartStop() { if (!state.isRunning && !setupAudioContext()) { alert("Audio start failed. Please click or interact with the page and try again."); return; } if (state.isRunning) { stopMetronome(); } else { startMetronome(); } updateControlsState(); }
+            function handleVisualControlKeyPress(event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleStartStop(); } }
+            function handleOpenModal(event) { const modalId = event.target.dataset.modalId; const modal = document.getElementById(modalId); if (modal?.showModal) { if (modalId === 'settingsModal') { if (!window.isSecureContext) { setStatusMessage(dom.clipboardStatusDiv, "Warning: Clipboard functions may fail (not HTTPS/secure context).", 'warning', 0); } else if (dom.clipboardStatusDiv.className === 'warning') { setStatusMessage(dom.clipboardStatusDiv, '', 'info', 0); } } modal.showModal(); } else { console.error("Modal not found:", modalId); } }
+            function handleCloseModal(event) { event.target.closest('dialog')?.close(); }
+            function handleSoundParamChange(event) { const input = event.target; const symbolKey = input.dataset.symbolKey; const param = input.dataset.param; let value; if (input.type === 'number' || input.type === 'range') { value = parseFloat(input.value); if (isNaN(value)) return; } else { value = input.value; } if (symbolKey && param && state.soundParams[symbolKey]?.[param] !== undefined) { state.soundParams[symbolKey][param] = value; if (param === 'emoji') { renderPatternGrid(); const currentlyDisplayedSymbol = dom.visualControlContainer.className.split(' ').find(c => c.startsWith('vis-'))?.substring(4); if (currentlyDisplayedSymbol === symbolKey && state.displayMode === 'symbol') { updateVisualDisplay(symbolKey); } } } else { console.warn("Invalid sound param update:", { symbolKey, param, value }); } }
+            function handlePatternModeToggle(event) { state.patternEditMode = event.target.checked ? 'behavior' : 'animal'; dom.editModeLabel.textContent = state.patternEditMode === 'animal' ? 'Symbol' : 'Behavior'; }
+            function handlePatternGridClick(event) { if (state.isRunning) return; const stepElement = event.target.closest('.pattern-step'); if (!stepElement) return; const index = parseInt(stepElement.dataset.index, 10); if (isNaN(index) || !state.patternConfig || index >= state.patternConfig.length) { console.error("Invalid step click:", index); return; } const mode = state.patternEditMode; const currentStepConfig = state.patternConfig[index]; const cycleArray = (mode === 'animal') ? SYMBOL_CYCLE : BEHAVIOR_CYCLE; const currentVal = currentStepConfig[mode]; const currentIndex = cycleArray.indexOf(currentVal); const nextIndex = (currentIndex + 1) % cycleArray.length; const nextVal = cycleArray[nextIndex]; state.patternConfig[index][mode] = nextVal; renderPatternStep(stepElement, state.patternConfig[index]); }
+            function handlePatternKeyPress(event) { if (state.isRunning) return; if (event.key === 'Enter' || event.key === ' ') { const stepElement = event.target.closest('.pattern-step'); if (stepElement) { event.preventDefault(); handlePatternGridClick({ target: stepElement }); } } }
+            function handleExportWav() { exportAudio(); }
+            function handleColorChange(event) { const cssVar = event.target.dataset.cssVar; const stateKey = event.target.dataset.stateKey; const newColor = event.target.value; if (cssVar && stateKey && newColor) { document.documentElement.style.setProperty(cssVar, newColor); state[stateKey] = newColor; } }
+            function handlePreviewSound(event) { const button = event.target.closest('.small-play-btn'); if (!button) return; const symbolKey = button.dataset.symbolKey; if (!symbolKey || !state.soundParams[symbolKey]) { console.error("Invalid symbol key for preview:", symbolKey); return; } if (!setupAudioContext()) { alert("Audio Context needed. Please interact with the page first."); return; } const params = state.soundParams[symbolKey]; playTone(audioContext.currentTime, params); }
+            function applyImportedSettings(encodedString) { const settings = decodeSettingsCompact(encodedString); if (settings) { state.bpm = settings.b; state.beatsPerMeasure = settings.m; Object.keys(settings.soundParams).forEach(key => { if (state.soundParams[key]) { state.soundParams[key].freq = settings.soundParams[key].freq; state.soundParams[key].vol = settings.soundParams[key].vol; state.soundParams[key].dur = settings.soundParams[key].dur; state.soundParams[key].type = settings.soundParams[key].type; state.soundParams[key].fadeIn = settings.soundParams[key].fadeIn; state.soundParams[key].fadeOut = settings.soundParams[key].fadeOut; } }); state.patternConfig = settings.patternConfig; state.c5 = settings.c5; state.c6 = settings.c6; dom.upArrowColorInput.value = state.c5; dom.downArrowColorInput.value = state.c6; document.documentElement.style.setProperty('--accent-color-5', state.c5); document.documentElement.style.setProperty('--accent-color-6', state.c6); dom.bpmSlider.value = state.bpm; dom.bpmInput.value = state.bpm; dom.beatsPerMeasureSelect.value = state.beatsPerMeasure; dom.displayModeSelect.value = 'symbol'; state.displayMode = 'symbol'; renderSoundEditor(); renderPatternGrid(); state.current16thNote = 0; updateInfoDisplay(0, -1); updateStepHighlight(-1); updateVisualDisplay('none', -1); if (state.isRunning) { stopMetronome(); updateControlsState(); } setStatusMessage(dom.clipboardStatusDiv, "Settings loaded! (Custom symbols/display mode reset)", 'success'); } }
+            function audioBufferToWav(buffer, opt = {}) { const numChannels = buffer.numberOfChannels; const sampleRate = buffer.sampleRate; const format = opt.float32 ? 3 : 1; const bitDepth = format === 3 ? 32 : 16; let result; if (numChannels === 2) { result = interleave(buffer.getChannelData(0), buffer.getChannelData(1)); } else { result = buffer.getChannelData(0); } return encodeWAV(result, format, sampleRate, numChannels, bitDepth); }
+            function encodeWAV(samples, format, sampleRate, numChannels, bitDepth) { const bytesPerSample = bitDepth / 8; const blockAlign = numChannels * bytesPerSample; const numSamples = samples.length; const dataSize = numSamples * bytesPerSample; const buffer = new ArrayBuffer(44 + dataSize); const view = new DataView(buffer); function writeString(v,o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));} function floatTo16(o,f,i){for(let j=0;j<i.length;j++,f+=2){const s=Math.max(-1,Math.min(1,i[j]));o.setInt16(f,s<0?s*0x8000:s*0x7FFF,true);}} function writeFloat(o,f,i){for(let j=0;j<i.length;j++,f+=4)o.setFloat32(f,i[j],true);} writeString(view,0,'RIFF'); view.setUint32(4,36+dataSize,true); writeString(view,8,'WAVE'); writeString(view,12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,format,true); view.setUint16(22,numChannels,true); view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate*blockAlign,true); view.setUint16(32,blockAlign,true); view.setUint16(34,bitDepth,true); writeString(view,36,'data'); view.setUint32(40,dataSize,true); if(format===1) floatTo16(view,44,samples); else writeFloat(view,44,samples); return buffer; }
+            function interleave(l,r){const len=l.length+r.length; const res=new Float32Array(len); let i=0,j=0; while(i<len){res[i++]=l[j];res[i++]=r[j];j++;} return res;}
+            function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");document.body.appendChild(a);a.style="display:none";a.href=url;a.download=filename;a.click();window.URL.revokeObjectURL(url);document.body.removeChild(a);}
+            async function exportAudio() { if (state.isRunning) { alert("Please stop the metronome before exporting."); return; } if (!window.OfflineAudioContext) { setStatusMessage(dom.exportStatusDiv, "Offline Audio Rendering not supported.", 'error'); return; } const durationSec = parseFloat(dom.exportDurationInput.value); if (isNaN(durationSec) || durationSec <= 0 || durationSec > MAX_EXPORT_DURATION_SEC) { setStatusMessage(dom.exportStatusDiv, `Invalid duration (1-${MAX_EXPORT_DURATION_SEC}s).`, 'error'); return; } setStatusMessage(dom.exportStatusDiv, "Rendering audio...", 'processing', 0); dom.exportWavButton.disabled = true; try { const sampleRate = 44100; const numChannels = 1; const totalSamples = Math.floor(sampleRate * durationSec); const offlineCtx = new OfflineAudioContext(numChannels, totalSamples, sampleRate); let currentTime = 0.0; let export16thNote = 0; const patternLength = state.patternConfig.length; const secondsPer16thNote = 60.0 / state.bpm / 4.0; while (currentTime < durationSec) { const stepConfig = state.patternConfig[export16thNote % patternLength]; if (stepConfig) { const { animal, behavior } = stepConfig; const shouldHear = (behavior === 'hear' || behavior === 'both') && animal !== 'none'; if (shouldHear) { const params = state.soundParams[animal]; if (params) { playTone(currentTime, params, offlineCtx, offlineCtx.destination); } } } currentTime += secondsPer16thNote; export16thNote++; } const renderedBuffer = await offlineCtx.startRendering(); const wavBuffer = audioBufferToWav(renderedBuffer, { float32: false }); const blob = new Blob([wavBuffer], { type: 'audio/wav' }); const filename = `metronome_${state.bpm}bpm_${state.beatsPerMeasure}beats_${durationSec}s.wav`; triggerDownload(blob, filename); setStatusMessage(dom.exportStatusDiv, "Export complete!", 'success'); } catch (error) { console.error("Audio Export Error:", error); setStatusMessage(dom.exportStatusDiv, `Export failed: ${error.message}`, 'error'); } finally { dom.exportWavButton.disabled = false; } }
+
+            function scheduler() {
+                if (!audioContext || audioContext.state !== 'running') { console.warn("Audio context stopped."); stopMetronome(); updateControlsState(); return; }
+                const currentTime = audioContext.currentTime;
+                while (state.nextNoteTime < currentTime + SCHEDULE_AHEAD_TIME_SEC) {
+                    const stepIndex = state.current16thNote;
+                    const patternLength = state.patternConfig.length;
+                    if (stepIndex >= patternLength) { console.error(`Scheduler error: stepIndex ${stepIndex} >= patternLength ${patternLength}. Resetting.`); state.current16thNote = 0; stopMetronome(); updateControlsState(); return; }
+                    const stepConfig = state.patternConfig[stepIndex];
+                    if (stepConfig) {
+                        const { animal, behavior } = stepConfig;
+                        const shouldHear = (behavior === 'hear' || behavior === 'both') && animal !== 'none';
+                        if (shouldHear) {
+                            const params = state.soundParams[animal];
+                            if (params) { playTone(state.nextNoteTime, params); } else { console.warn(`No sound params for: ${animal}`); }
+                        }
+                        const visualUpdateDelay = Math.max(0, (state.nextNoteTime - currentTime - 0.015) * 1000);
+                        setTimeout(() => {
+                            if (state.isRunning) {
+                                const beatNumForDisplay = Math.floor(stepIndex / 4) + 1;
+                                const subNumForDisplay = stepIndex % 4;
+                                updateInfoDisplay(beatNumForDisplay, subNumForDisplay);
+                                updateVisualDisplay(animal, stepIndex); // Pass configured animal and index
+                                updateStepHighlight(stepIndex);
+                            }
+                        }, visualUpdateDelay);
+                    } else { console.warn(`No step config @ ${stepIndex}`); }
+                    const secondsPer16thNote = 60.0 / state.bpm / 4.0;
+                    state.nextNoteTime += secondsPer16thNote;
+                    state.current16thNote = (state.current16thNote + 1) % patternLength;
+                }
+                if (state.isRunning) { timerID = window.setTimeout(scheduler, LOOKAHEAD_MS); }
+            }
+
+            function startMetronome() { if (state.isRunning) return; if (!setupAudioContext()) { alert("Audio Context failed."); return; } state.isRunning = true; state.current16thNote = 0; state.nextNoteTime = audioContext.currentTime + 0.1; console.log("Starting scheduler. Next note time:", state.nextNoteTime); scheduler(); }
+            function stopMetronome() { if (!state.isRunning) return; state.isRunning = false; clearTimeout(timerID); timerID = null; if (state.activeStepElement) { state.activeStepElement.classList.remove('active-step'); state.activeStepElement = null; } updateInfoDisplay(0, -1); updateVisualDisplay('none', -1); console.log("Metronome stopped."); }
+            function getDefaultState() { return JSON.parse(JSON.stringify({ bpm: 120, beatsPerMeasure: 4, soundParams: { cow: { name: "Cow 🐮", emoji: "🐮", freq: 110, dur: 0.20, fadeIn: 0.01, fadeOut: 0.18, type: 'sawtooth', vol: 0.6 }, tiger: { name: "Tiger 🐯", emoji: "🐯", freq: 400, dur: 0.15, fadeIn: 0.005, fadeOut: 0.12, type: 'square', vol: 0.4 }, pig: { name: "Pig 🐷", emoji: "🐷", freq: 880, dur: 0.08, fadeIn: 0.002, fadeOut: 0.07, type: 'triangle', vol: 0.35 }, frog: { name: "Frog 🐸", emoji: "🐸", freq: 1400, dur: 0.06, fadeIn: 0.001, fadeOut: 0.05, type: 'sine', vol: 0.3 }, up: { name: "Up ↑", emoji: "↑", freq: 750, dur: 0.05, fadeIn: 0.001, fadeOut: 0.04, type: 'sine', vol: 0.35 }, down: { name: "Down ↓", emoji: "↓", freq: 500, dur: 0.07, fadeIn: 0.001, fadeOut: 0.06, type: 'sine', vol: 0.4 } }, patternConfig: [], c5: '#8b5cf6', c6: '#64748b', displayMode: 'symbol' })); }
+            function initPatternConfig() { state.patternConfig = []; const totalSteps = state.beatsPerMeasure * 4; for (let i = 0; i < totalSteps; i++) { const beatNum = Math.floor(i / 4) + 1; const subNum = i % 4; let animal = 'none', behavior = 'off'; if (subNum === 0) { animal = (beatNum === 1) ? 'cow' : 'tiger'; behavior = 'both'; } state.patternConfig.push({ animal, behavior }); } console.log(`Pattern config initialized for ${state.beatsPerMeasure} beats.`); }
+            function cacheDomElements() { dom.appContainer = document.getElementById('appContainer'); dom.bpmSlider = document.getElementById('bpmSlider'); dom.bpmInput = document.getElementById('bpmInput'); dom.visualArea = document.getElementById('visualArea'); dom.visualControlContainer = document.getElementById('visualControlContainer'); dom.emojiDisplay = document.getElementById('emojiDisplay'); dom.infoDisplay = document.getElementById('infoDisplay'); dom.settingsButton = document.getElementById('settingsButton'); dom.beatsPerMeasureSelect = document.getElementById('beatsPerMeasure'); dom.displayModeSelect = document.getElementById('displayMode'); dom.soundEditorGrid = document.getElementById('soundEditorGrid'); dom.patternGrid = document.getElementById('patternGrid'); dom.settingsCodeTextarea = document.getElementById('settingsCode'); dom.copyCodeButton = document.getElementById('copyCodeButton'); dom.loadCodeButton = document.getElementById('loadCodeButton'); dom.loadTextBoxButton = document.getElementById('loadTextBoxButton'); dom.clipboardStatusDiv = document.getElementById('clipboardStatus'); dom.editModeToggle = document.getElementById('editModeToggle'); dom.editModeLabel = document.getElementById('editModeLabel'); dom.editSoundsButton = document.getElementById('editSoundsButton'); dom.editPatternButton = document.getElementById('editPatternButton'); dom.exportDurationInput = document.getElementById('exportDuration'); dom.exportWavButton = document.getElementById('exportWavButton'); dom.exportStatusDiv = document.getElementById('exportStatus'); dom.upArrowColorInput = document.getElementById('upArrowColor'); dom.downArrowColorInput = document.getElementById('downArrowColor'); }
+            function bindEventListeners() { dom.bpmSlider.addEventListener('input', handleBpmChange); dom.bpmInput.addEventListener('input', handleBpmInputChange); dom.beatsPerMeasureSelect.addEventListener('change', handleTimeSigChange); dom.displayModeSelect.addEventListener('change', handleDisplayModeChange); dom.visualControlContainer.addEventListener('click', handleStartStop); dom.visualControlContainer.addEventListener('keydown', handleVisualControlKeyPress); dom.copyCodeButton.addEventListener('click', copyCodeToClipboard); dom.loadCodeButton.addEventListener('click', loadCodeFromClipboard); dom.loadTextBoxButton.addEventListener('click', handleLoadFromTextBox); dom.editModeToggle.addEventListener('change', handlePatternModeToggle); dom.patternGrid.addEventListener('click', handlePatternGridClick); dom.patternGrid.addEventListener('keydown', handlePatternKeyPress); dom.settingsButton.addEventListener('click', handleOpenModal); document.querySelectorAll('#settingsModal button[data-modal-id]').forEach(btn => { btn.addEventListener('click', handleOpenModal); }); document.querySelectorAll('.modal-close-btn').forEach(btn => { btn.addEventListener('click', handleCloseModal); }); document.querySelectorAll('dialog').forEach(dialog => { dialog.addEventListener('click', (event) => { if (event.target === dialog) { dialog.close(); } }); }); dom.exportWavButton.addEventListener('click', handleExportWav); dom.upArrowColorInput.addEventListener('input', handleColorChange); dom.downArrowColorInput.addEventListener('input', handleColorChange); dom.soundEditorGrid.addEventListener('click', handlePreviewSound); }
+            function init() { console.log("Initializing Rhythm Tool Pro..."); cacheDomElements(); const defaultState = getDefaultState(); state = {...defaultState, ...state}; initPatternConfig(); dom.bpmSlider.value = state.bpm; dom.bpmInput.value = state.bpm; renderSoundEditor(); renderPatternGrid(); updateVisualDisplay('none', -1); updateInfoDisplay(0, -1); dom.upArrowColorInput.value = state.c5; dom.downArrowColorInput.value = state.c6; document.documentElement.style.setProperty('--accent-color-5', state.c5); document.documentElement.style.setProperty('--accent-color-6', state.c6); dom.displayModeSelect.value = state.displayMode; dom.editModeLabel.textContent = state.patternEditMode === 'animal' ? 'Symbol' : 'Behavior'; updateControlsState(); bindEventListeners(); console.log("Rhythm Tool Pro Initialized"); }
+            return { init, getDefaultState };
+        })();
+        document.addEventListener('DOMContentLoaded', App.init);
+    </script>
+</body>
+</html>
