@@ -6,7 +6,7 @@
     <meta name="description" content="A modern, configurable pattern metronome with precise BPM input, text-to-speech counts, behavior-controlled visuals (symbols/beat numbers), sound editor preview, clipboard sharing, and WAV export.">
     <meta name="keywords" content="metronome, pattern, sequencer, emoji, text, text-to-speech, tts, speech, count, beat, visual, behavior, sound editor, preview, bpm, audio, export, wav, accessible, rhythm, music, tool, clipboard, offline, base64">
     <title>Rhythm Tool · Accessible rhythm practice</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=4.1">
 </head>
 <body>
     <div id="appContainer">
@@ -27,21 +27,24 @@
         <div id="beatStrip" aria-label="Beats in this measure"></div>
         <p id="nextCue">Press Start when you’re ready.</p>
         <button id="transport" class="primary" aria-pressed="false">Start practice</button>
+        <button id="quickEditPattern" type="button">Edit beats · sound, visuals & speech</button>
         <section class="practice-controls" aria-label="Practice controls">
           <label for="volume">Volume <output id="volumeValue">70%</output></label><input type="range" id="volume" min="0" max="100" value="70">
-          <label for="speech">Spoken counts</label><select id="speech"><option value="off">Off</option><option value="beats" selected>Beats only</option><option value="all">All custom counts</option></select>
+          <label for="speech">Spoken counts</label><select id="speech"><option value="off">Off</option><option value="all" selected>On · use step switches</option></select>
+          <label for="voiceChoice">Counting voice</label><select id="voiceChoice"><option value="clear">Clear · precise</option><option value="warm">Warm · precise</option></select>
+          <button id="previewVoice" type="button">Preview voice</button><p id="voiceHelp" class="voice-help">Bundled voices keep standard counts on time.</p>
           <label class="check"><input id="countIn" type="checkbox"> One measure count-in</label>
           <label class="check"><input id="calm" type="checkbox"> Calm visuals</label>
         </section>
         <details class="practice-help"><summary>Practice patterns & tips</summary>
           <p>Start slowly. Move your hand down on the beat and up on “and,” even when you skip a strum.</p>
           <label for="preset">Practice pattern</label><select id="preset"><option value="">Choose a pattern…</option><option value="beats">Steady beats</option><option value="eighths">Down / up eighths</option><option value="island">Island strum · D D U U D U</option><option value="sixteenths">All sixteenths</option></select>
-          <p>Choosing a pattern replaces the current steps. Customize every step in Settings → Edit Pattern.</p>
-          <p>Standard counts (1–8, e, and, a, up, down, rest, change, ready) use precisely scheduled audio. At fast tempos they speed up to fit. Other custom phrases use browser speech, which may be late or skip when busy. Wired audio avoids Bluetooth delay.</p>
+          <p>Choosing a pattern replaces the current steps. Customize every step in Edit beats.</p>
+          <p>The Clear and Warm voices give standard counts (1–8, e, and, a, up, down, rest, change, ready) precisely scheduled audio. At fast tempos they speed up to fit. Other custom phrases use browser speech, which may be late or skip when busy. Wired audio avoids Bluetooth delay.</p>
           <p>Space: start/stop · T: tap tempo · Arrow keys: change tempo. Practice pauses when you switch tabs to prevent unreliable background timing.</p>
         </details>
         <p id="appStatus" role="status">Your settings save automatically on this device.</p>
-        <footer>RHYTHM TOOL <span>4.0 · Made for your pace</span></footer>
+        <footer>RHYTHM TOOL <span>4.1 · Made for your pace</span></footer>
     </div>
 
     <dialog id="settingsModal" aria-labelledby="settingsModalTitle" aria-modal="true">
@@ -92,7 +95,7 @@
                 </div>
             </fieldset>
             <fieldset id="exportSection" class="settings-section">
-                <h3>Export Audio (WAV)</h3><p>Tones and standard spoken counts, at the current volume. Custom browser speech and count-in are not included.</p>
+                <h3>Export Audio (WAV)</h3><p>Tones and standard counts in the Clear or Warm voice, at the current volume. Device voices, custom browser phrases and count-in are not included.</p>
                 <div class="export-controls">
                     <label for="exportDuration">Duration:</label>
                     <div>
@@ -127,16 +130,11 @@
     <dialog id="patternEditorModal" aria-labelledby="patternEditorTitle" aria-modal="true">
         <div class="modal-header"><h2 id="patternEditorTitle">Rhythm Pattern Editor</h2><button class="modal-close-btn" data-modal-id="patternEditorModal" aria-label="Close pattern editor">&times;</button></div>
          <div class="modal-body">
+             <p class="editor-intro">Each step has independent Sound, Visual and Speech switches. Switch speech off without deleting its words. Symbols choose the picture and tone together.</p>
              <div id="patternEditorHeader">
-                 <div class="mode-toggle">
-                    <label for="editModeSelect">Edit Mode:</label>
-                    <select id="editModeSelect">
-                        <option value="animal" selected>Symbol</option>
-                        <option value="behavior">Behavior</option>
-                        <option value="tts">Spoken Count</option>
-                    </select>
-                </div>
-                <span id="editModeHint">Click squares to cycle values</span>
+               <label for="bulkChannel">Set multiple steps</label><select id="bulkChannel"><option value="speech">Speech</option><option value="sound">Sound</option><option value="visual">Visuals</option></select>
+               <div class="bulk-actions"><button data-bulk="on">All on</button><button data-bulk="off">All off</button><button data-bulk="beats">Beats only</button><button data-bulk="eighths">Beats + ands</button></div>
+               <p id="speechEditorStatus" role="status"></p><button id="enableSpeech" hidden>Enable spoken counts</button>
              </div>
             <div id="patternEditorContainer" aria-label="Rhythm Pattern Grid"><div id="patternGrid" class="pattern-grid"></div></div>
         </div>
@@ -144,7 +142,8 @@
     </dialog>
 
     <script src="voice-bank.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="voice-warm.js" defer></script>
+    <script src="app.js?v=4.1" defer></script>
 </body>
 </html>
 

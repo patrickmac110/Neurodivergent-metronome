@@ -199,3 +199,29 @@ footer span { font-weight:400; letter-spacing:0; }
 .modal-footer .modal-close-btn { font-size:1rem; color:white; padding:8px 22px; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
 @media (max-width:640px) { body { padding:12px 10px; } #appContainer { padding:24px 18px; gap:14px; } h1 { font-size:2.2rem; } #visualArea { margin:0; } #visualControlContainer { width:160px; height:160px; } #emojiDisplay { font-size:56px; } .beat-chip { width:32px; height:36px; } #beatStrip { gap:5px; } dialog { max-width:96vw; width:96vw; } .modal-header,.modal-body,.modal-footer { padding:16px; } .practice-controls { gap:12px; } .check { font-size:.8rem; } }
+/* 4.1: explicit, independent per-step controls */
+#quickEditPattern { background:#edf1eb; color:#285c50; border:1px solid #d9dfd9; }
+#voiceChoice { min-width:0; }
+.voice-help { font-size:.78rem; margin:0; color:var(--text-muted-color); }
+#patternEditorModal { width:920px; }
+.editor-intro { margin:0; color:var(--text-muted-color); font-size:.9rem; }
+#patternEditorHeader { display:flex; align-items:center; gap:10px; margin:0; }
+#bulkChannel { min-height:44px; padding:8px; border:1px solid var(--border-color); border-radius:8px; background:white; }
+.bulk-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.bulk-actions button { padding:8px 12px; font-size:.85rem; }
+#speechEditorStatus { width:100%; margin:0; font-size:.85rem; }
+#patternEditorContainer { padding:12px; overflow:visible; }
+#patternGrid { min-width:0; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+#patternGrid .beat-label { grid-column:1/-1; justify-content:flex-start; background:transparent; border:0; padding:10px 0 0; }
+#patternGrid .pattern-step { padding:12px; align-items:stretch; justify-content:flex-start; text-align:left; gap:6px; cursor:default; overflow:visible; }
+#patternGrid .pattern-step:hover { transform:none; box-shadow:none; border-color:var(--border-color); }
+.step-title { font-size:1.1rem; }
+.symbol-label,.spoken-label { display:flex; flex-direction:column; gap:4px; font-size:.75rem; color:var(--text-muted-color); }
+#patternGrid select { width:100%; min-width:0; min-height:42px; font-size:.85rem; background:white; border:1px solid var(--border-color); border-radius:6px; }
+.step-toggle { display:flex; gap:9px; align-items:center; min-height:38px; font-size:.9rem; cursor:pointer; border-radius:6px; }
+.step-toggle:has(input:checked) { color:var(--primary-color); font-weight:650; }
+.step-toggle input { width:20px; height:20px; accent-color:var(--primary-color); margin:0; }
+#patternGrid .tts-input { min-height:42px; text-align:left; padding:6px; }
+.speech-step-hint { font-size:.7rem; color:var(--text-muted-color); min-height:2.5em; }
+[hidden] { display:none !important; }
+@media(max-width:640px) { #patternGrid { grid-template-columns:repeat(2,minmax(0,1fr)); } #patternEditorModal .modal-body { gap:14px; } #patternGrid .pattern-step { padding:10px; } #patternEditorContainer { padding:8px; } }

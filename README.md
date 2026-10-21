@@ -1,4 +1,4 @@
-# Rhythm Tool 4.0
+# Rhythm Tool 4.1
 
 Accessible rhythm practice, hosted on GitHub Pages. Buildless HTML/CSS/JavaScript; no runtime dependencies, account, tracking, or remote speech service for standard counts.
 
@@ -32,3 +32,9 @@ Changing beats per measure preserves steps that still fit. Pattern presets inten
 ## Verification
 
 `tests/regression.cjs` exercises shared-code round trips, old fixed-padding imports, malformed settings, HTML escaping, spoken-text spaces, asynchronous audio resume, sampled speech fitting at 60/120/180/300 BPM, missed-beat recovery, matching voice/tone timestamps, stop and rapid restart cancellation, and WAV headers with a deterministic audio/DOM test double. Actual device latency and subjective intelligibility still require listening on the target device.
+
+## 4.1: voice choice and direct beat editing
+
+The main screen now includes Counting voice and Preview voice. Clear (SLT) and Warm (RMS) use bundled samples; available device voices use the browser engine and are explicitly labeled as less timing-reliable. Voice choice is saved and shared; unavailable device voices fall back to the browser default.
+
+Edit beats opens a single editor with a symbol/tone selector and independent Sound, Visual and Speech checkboxes on each step. Words are retained when speech is disabled. Bulk actions target exactly one channel: All on, All off, Beats only, or Beats + ands. The global speech control is now a master mute; step switches determine which counts play. Old saved Beats-only settings migrate to individual enabled/disabled steps. WAV export observes those switches and the selected bundled voice. Device voices remain excluded from export.
